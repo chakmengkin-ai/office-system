@@ -25,6 +25,16 @@ export default function Annotator({ imageUrl }: { imageUrl: string }) {
         }
     }, [imageUrl])
 
+    const getCanvasCoordinates = (e: React.MouseEvent, canvas: HTMLCanvasElement) => {
+        const rect = canvas.getBoundingClientRect()
+        const scaleX = canvas.width / rect.width
+        const scaleY = canvas.height / rect.height
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        }
+    }
+
     const startDrawing = (e: React.MouseEvent) => {
         if (tool !== "pen") return
         setIsDrawing(true)
@@ -33,11 +43,13 @@ export default function Annotator({ imageUrl }: { imageUrl: string }) {
         const ctx = canvas.getContext("2d")
         if (!ctx) return
 
-        const rect = canvas.getBoundingClientRect()
+        const { x, y } = getCanvasCoordinates(e, canvas)
         ctx.beginPath()
-        ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
+        ctx.moveTo(x, y)
         ctx.strokeStyle = color
         ctx.lineWidth = 3
+        ctx.lineCap = "round" // Smoother lines
+        ctx.lineJoin = "round"
     }
 
     const draw = (e: React.MouseEvent) => {
@@ -47,8 +59,8 @@ export default function Annotator({ imageUrl }: { imageUrl: string }) {
         const ctx = canvas.getContext("2d")
         if (!ctx) return
 
-        const rect = canvas.getBoundingClientRect()
-        ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top)
+        const { x, y } = getCanvasCoordinates(e, canvas)
+        ctx.lineTo(x, y)
         ctx.stroke()
     }
 

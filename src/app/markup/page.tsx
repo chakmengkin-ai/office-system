@@ -9,11 +9,28 @@ import Annotator from "@/components/markup/annotator"
 export default function MarkupPage() {
     const [selectedImage, setSelectedImage] = React.useState<string | null>(null)
 
-    // Quick mock for demo - In real app, use file uploader to create object URL
-    const handleUpload = () => {
-        // Setting a placeholder architectural drawing
-        setSelectedImage("https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2000&auto=format&fit=crop")
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click()
     }
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (file) {
+            const url = URL.createObjectURL(file)
+            setSelectedImage(url)
+        }
+    }
+
+    // Cleanup object URL
+    React.useEffect(() => {
+        return () => {
+            if (selectedImage && selectedImage.startsWith('blob:')) {
+                URL.revokeObjectURL(selectedImage)
+            }
+        }
+    }, [selectedImage])
 
     return (
         <div className="container mx-auto p-6 max-w-6xl">
@@ -22,7 +39,14 @@ export default function MarkupPage() {
                     <h1 className="text-3xl font-bold tracking-tight">Markup & Review</h1>
                     <p className="text-muted-foreground mt-1">Annotate designs and share feedback visually.</p>
                 </div>
-                <Button onClick={handleUpload} disabled={!!selectedImage}>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                />
+                <Button onClick={handleUploadClick} disabled={!!selectedImage}>
                     <Upload className="mr-2 h-4 w-4" /> Upload Document
                 </Button>
             </div>
@@ -34,8 +58,8 @@ export default function MarkupPage() {
                     </div>
                     <p className="text-lg font-medium">No Document Selected</p>
                     <p className="text-sm">Upload an image or blueprint to start annotating.</p>
-                    <Button className="mt-6" variant="secondary" onClick={handleUpload}>
-                        Select Mock Image
+                    <Button className="mt-6" variant="secondary" onClick={handleUploadClick}>
+                        Select Image
                     </Button>
                 </div>
             ) : (
