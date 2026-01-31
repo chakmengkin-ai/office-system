@@ -35,8 +35,60 @@ export default function Annotator({ imageUrl }: { imageUrl: string }) {
         }
     }
 
+    const [history, setHistory] = React.useState<ImageData[]>([])
+
+    const saveHistory = () => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return
+
+        // Save current state
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        setHistory(prev => [...prev, imageData])
+    }
+
+    const undo = () => {
+        if (history.length === 0) return
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return
+
+        const newHistory = [...history]
+        const previousState = newHistory.pop()
+        setHistory(newHistory)
+
+        if (previousState) {
+            ctx.putImageData(previousState, 0, 0)
+        } else {
+            // If we popped the last state, we might want to clear or reload original image
+            // ideally we keep the "original" image as history[0]
+            // but for simple undo, if empty, we re-draw the original image
+            const img = new Image()
+            img.src = imageUrl
+            img.onload = () => ctx.drawImage(img, 0, 0)
+        }
+    }
+
+    const clearCanvas = () => {
+        const canvas = canvasRef.current
+        if (!canvas) return
+        const ctx = canvas.getContext("2d")
+        if (!ctx) return
+
+        // Save state before clearing
+        saveHistory()
+
+        // Reload original image
+        const img = new Image()
+        img.src = imageUrl
+        img.onload = () => ctx.drawImage(img, 0, 0)
+    }
+
     const startDrawing = (e: React.MouseEvent) => {
         if (tool !== "pen") return
+        saveHistory() // Save before new stroke
         setIsDrawing(true)
         const canvas = canvasRef.current
         if (!canvas) return
@@ -48,7 +100,7 @@ export default function Annotator({ imageUrl }: { imageUrl: string }) {
         ctx.moveTo(x, y)
         ctx.strokeStyle = color
         ctx.lineWidth = 3
-        ctx.lineCap = "round" // Smoother lines
+        ctx.lineCap = "round"
         ctx.lineJoin = "round"
     }
 
@@ -92,10 +144,10 @@ export default function Annotator({ imageUrl }: { imageUrl: string }) {
                     ))}
                 </div>
                 <div className="flex-1" />
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" onClick={undo} disabled={history.length === 0}>
                     <Undo className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" className="text-destructive">
+                <Button variant="ghost" size="sm" className="text-destructive" onClick={clearCanvas}>
                     <Trash className="h-4 w-4" />
                 </Button>
                 <Button size="sm">

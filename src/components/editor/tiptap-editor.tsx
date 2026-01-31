@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
@@ -86,6 +87,13 @@ export default function TiptapEditor({ content, onChange }: { content?: string, 
             onChange?.(editor.getHTML())
         },
     })
+
+    // Update editor content when the prop changes (e.g. switching notes)
+    React.useEffect(() => {
+        if (editor && content && editor.getHTML() !== content) {
+            editor.commands.setContent(content)
+        }
+    }, [content, editor])
 
     return (
         <div className="border rounded-md overflow-hidden bg-background">

@@ -26,6 +26,9 @@ export default function FeedbackPage() {
     const [isFormOpen, setIsFormOpen] = React.useState(false)
     const [formData, setFormData] = React.useState({ client: '', project: '', content: '' })
 
+    const [isSubmitting, setIsSubmitting] = React.useState(false)
+    const [statusMessage, setStatusMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null)
+
     const fetchFeedback = React.useCallback(async () => {
         try {
             const { data, error } = await supabase
@@ -58,10 +61,16 @@ export default function FeedbackPage() {
         }
     }, [fetchFeedback])
 
-    const toggleForm = () => setIsFormOpen(!isFormOpen)
+    const toggleForm = () => {
+        setIsFormOpen(!isFormOpen)
+        setStatusMessage(null)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        setIsSubmitting(true)
+        setStatusMessage(null)
+
         try {
             const { error } = await supabase.from('feedback').insert([
                 {
@@ -75,10 +84,19 @@ export default function FeedbackPage() {
             if (error) throw error
 
             setFormData({ client: '', project: '', content: '' })
-            setIsFormOpen(false)
+            setStatusMessage({ type: 'success', text: 'Feedback submitted successfully!' })
+
+            // Close form after distinct delay or keep open to show success? 
+            // Better UX: Keep open for a moment or close immediately. Choosing close after short delay.
+            setTimeout(() => {
+                setIsFormOpen(false)
+                setIsSubmitting(false)
+                setStatusMessage(null)
+            }, 1500)
         } catch (error) {
             console.error('Error submitting feedback:', error)
-            alert('Failed to submit feedback. Check console.')
+            setStatusMessage({ type: 'error', text: 'Failed to submit feedback. Please try again.' })
+            setIsSubmitting(false)
         }
     }
 
@@ -122,6 +140,11 @@ export default function FeedbackPage() {
                     </CardHeader>
                     <CardContent>
                         <form className="space-y-4" onSubmit={handleSubmit}>
+                            {statusMessage && (
+                                <div className={`p-3 rounded-md text-sm ${statusMessage.type === 'error' ? 'bg-destructive/15 text-destructive' : 'bg-green-500/15 text-green-600'}`}>
+                                    {statusMessage.text}
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Client Name</label>
@@ -130,6 +153,7 @@ export default function FeedbackPage() {
                                         value={formData.client}
                                         onChange={(e) => setFormData({ ...formData, client: e.target.value })}
                                         required
+                                        disabled={isSubmitting}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -139,6 +163,7 @@ export default function FeedbackPage() {
                                         value={formData.project}
                                         onChange={(e) => setFormData({ ...formData, project: e.target.value })}
                                         required
+                                        disabled={isSubmitting}
                                     />
                                 </div>
                             </div>
@@ -149,12 +174,14 @@ export default function FeedbackPage() {
                                     value={formData.content}
                                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                                     required
+                                    disabled={isSubmitting}
                                 />
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="ghost" onClick={toggleForm} type="button">Cancel</Button>
-                                <Button type="submit">
-                                    <Send className="mr-2 h-4 w-4" /> Submit Feedback
+                                <Button variant="ghost" onClick={toggleForm} type="button" disabled={isSubmitting}>Cancel</Button>
+                                <Button type="submit" disabled={isSubmitting}>
+                                    {isSubmitting ? <span className="animate-spin mr-2">⏳</span> : <Send className="mr-2 h-4 w-4" />}
+                                    {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
                                 </Button>
                             </div>
                         </form>
